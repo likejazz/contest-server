@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-pthread -Wno-pointer-sign
+CFLAGS=
 
 build:
 	$(CC) -o contest contest.c $(CFLAGS)
