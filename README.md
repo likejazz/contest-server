@@ -1,5 +1,5 @@
-contest-server
-==============
+CONTEST
+=======
 
 CONTEST is a very simple and easy-to-use testing server that tracks hosts' TCP connections.
 
