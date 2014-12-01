@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     error("setsockopt() ERROR");
   if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
     error("bind() ERROR. Not enough privilleges(<1024) or already in use");
-  if (listen(parentfd, LISTEN_LIMIT) < 0)
+  if (listen(parentfd, BACKLOG) < 0)
     error("listen() ERROR");
 
   printf("Listening on %d\n", port);
@@ -112,8 +112,9 @@ int main(int argc, char *argv[]) {
     clientcount++;
     clientlatest++;
     printf("#%d - Connected from %s(%s:%d), TOTAL:%d\n",
-            clientlatest, hostp->h_name,
-            inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port), clientcount);
+            clientlatest,
+            hostp->h_name, inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port),
+            clientcount);
     pthread_mutex_unlock(&mutex);
 
     // memory allocation for `thread_param_t` struct

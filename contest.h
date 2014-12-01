@@ -27,7 +27,7 @@ SOFTWARE.
 #include <stddef.h>
 #include <pthread.h>
 
-#define LISTEN_LIMIT  128     // backlog for listen()
+#define BACKLOG       128     // backlog for listen()
 #define DEFAULT_PORT  11212   // default listening port
 #define BUF_SIZE      1024    // message chunk size for read()
 
