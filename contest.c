@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
 
   printf("Listening on %d\n", port);
   clientlen = sizeof(clientaddr);
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
   /*
     enter an infinite loop to respond to client requests
    */
@@ -122,4 +125,5 @@ int main(int argc, char *argv[]) {
     pthread_create(&thread_id, NULL, handle_client, (void *) params);
     pthread_detach(thread_id);
   }
+#pragma clang diagnostic pop
 }
