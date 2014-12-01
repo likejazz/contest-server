@@ -14,5 +14,7 @@ The default installation should work immediately for most of you. (default: 1121
 
 That's all.
 
+_The current version has been tested on Linux & Mac OS X_
+
 ## SAMPLE OUTPUT
 ![](https://raw.githubusercontent.com/likejazz/contest-server/master/contest.png)
