@@ -13,3 +13,6 @@ The default installation should work immediately for most of you. (default: 1121
     ./contest
 
 That's all.
+
+## SAMPLE OUTPUT
+![](https://raw.githubusercontent.com/likejazz/contest-server/master/contest.png)
