@@ -42,7 +42,7 @@ void *handle_client(void *params) {
   /*
     `read` from a file descriptor(p->client_sock)
    */
-  bzero(msg, sizeof(msg));
+  memset(msg, 0, sizeof(msg));
   while ((strlen = read(p->client_sock, msg, sizeof(msg))) != 0) {
 
     pthread_mutex_lock(&mutex);
@@ -57,7 +57,7 @@ void *handle_client(void *params) {
       break;
 
     // clear message buffer
-    bzero(msg, sizeof(msg));
+    memset(msg, 0, sizeof(msg));
   }
 
   pthread_mutex_lock(&mutex);

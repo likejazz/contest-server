@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     error("socket() opening ERROR");
 
   // build server's internet addr and initialize
-  bzero((char *) &serveraddr, sizeof(serveraddr));
+  memset((char *) &serveraddr, 0, sizeof(serveraddr));
   serveraddr.sin_family = AF_INET;                // an internet addr
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); // let the system figure out our IP addr
   serveraddr.sin_port = htons(port);              // the port we will listen on
