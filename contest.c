@@ -1,117 +1,125 @@
-/**
-* CONTEST: A Very Simple TCP CONnection TESTer
-* 	by Sang-Kil Park
+/*
+CONTEST: A Very Simple TCP CONnection TESter
+
+The MIT License (MIT)
+
+Copyright (c) 2010-2014 Sang-Kil Park <kaon.park@daumkakao.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+
 #include <string.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <pthread.h>
+#include <netdb.h>
 
-#define MAX_CHAR 		1024
-#define DEFAULT_PORT	11212
-#define LISTEN_LIMIT	128
-
-void *handle_client(void *params);
-void error_handling(char * msg);
-
-// The total count of connected clients
-int client_count = 0;
-// The latest number of connected clients
-int client_latest = 0;
-// binding port
-int port = DEFAULT_PORT;
-// MUTEX: protecting shared data structures from concurrent modifications.
-pthread_mutex_t mutex;
-
-typedef struct {
-	int client_id;
-	int client_sock;
-} thread_param_t;
-thread_param_t *params = NULL;
-
-int server_sock, client_sock;
-struct sockaddr_in server_addr, client_addr;
-unsigned int client_addr_size; // size of `client_addr`
-int on = 1; // temp variable for `setsockopt`
-pthread_t thread_id;
+#include "contest.h"
+#include "client.h"
+#include "error.h"
 
 int main(int argc, char *argv[]) {
-	// print `Usage`
-	if (argc == 2) {
-		if (strcmp(argv[1],"-h") == 0) {
-			printf("Usage: %s <Port>\n", argv[0]);
-			exit(1);
-		}
-		port = atoi(argv[1]);
-	}
+  int parentfd;                   // listening socket
+  int childfd;                    // connection socket
+  int port = DEFAULT_PORT;        // port to listen on
+  unsigned int clientlen;         // byte size of client's address
+  struct sockaddr_in serveraddr;  // server's addr
+  struct sockaddr_in clientaddr;  // client addr
+  struct hostent *hostp;          // client host info
+  int optval = 1;                 // flag value for `setsockopt`
 
-	pthread_mutex_init(&mutex, NULL);
-	server_sock = socket(PF_INET, SOCK_STREAM, 0);
+  pthread_t thread_id;            // thread id
 
-	// initialize `sockaddr_in`
-	memset(&server_addr, 0, sizeof(server_addr));
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port = htons(port);
+  // initialize global variables
+  clientcount = 0;
+  clientlatest = 0;
+  params = NULL;
 
-	if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
-		error_handling("setsockopt(SO_REUSEADDR) Error - Why?");
-	if (bind(server_sock, (struct sockaddr*) &server_addr, sizeof(server_addr))==-1)
-		error_handling("bind() Error - Not enough privilleges(<1024) or already in use.");
-	if (listen(server_sock, LISTEN_LIMIT)==-1)
-		error_handling("listen() Error - Why?");
+  /*
+    check command line arguments
+   */
+  if (argc > 1) {
+    if (strcmp(argv[1], "-h") == 0 ||
+            strcmp(argv[1], "--help") == 0 ||
+            argc > 2) {
+      printf("Usage: %s <Port>\n", argv[0]);
+      exit(EXIT_FAILURE);
+    }
+    port = atoi(argv[1]);
+  }
 
-	printf("Listening to %d\n", port);
-	while(1) {
-		client_addr_size = sizeof(client_addr);
-		client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &client_addr_size);
+  pthread_mutex_init(&mutex, NULL);
+  // create the parent socket
+  if ((parentfd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    error("socket() opening ERROR");
 
-		pthread_mutex_lock(&mutex);
-		client_count++;
-		client_latest++;
-		printf("#%d Connected from %s:%d, TOTAL:%d\n",
-				client_latest, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), client_count);
-		pthread_mutex_unlock(&mutex);
+  // build server's internet addr and initialize
+  bzero((char *) &serveraddr, sizeof(serveraddr));
+  serveraddr.sin_family = AF_INET;                // an internet addr
+  serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); // let the system figure out our IP addr
+  serveraddr.sin_port = htons(port);              // the port we will listen on
 
-		// memory allocation for `thread_param_t`
-		params = malloc(sizeof(thread_param_t));
-		params->client_id = client_latest;
-		params->client_sock = client_sock;
+  // setsockopt: handy debugging trick
+  // that lets us rerun the server immediately after we kill it
+  if (setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
+    error("setsockopt() ERROR");
+  if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+    error("bind() ERROR. Not enough privilleges(<1024) or already in use");
+  if (listen(parentfd, LISTEN_LIMIT) < 0)
+    error("listen() ERROR");
 
-		// 1 thread, 1 client
-		pthread_create(&thread_id, NULL, handle_client, (void *) params);
-		pthread_detach(thread_id);
-	}
-	return 0;
-}
+  printf("Listening on %d\n", port);
+  clientlen = sizeof(clientaddr);
+  /*
+    enter an infinite loop to respond to client requests
+   */
+  while (1) {
+    /*
+      wait for a connection, then accept() it
+     */
+    if ((childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen)) < 0)
+      error("accept() ERROR");
 
-void *handle_client(void *params) {
-	thread_param_t *p = (thread_param_t *) params;
-	ssize_t str_len = 0;
-	char msg[MAX_CHAR];
+    // determine who sent the message
+    if ((hostp = gethostbyaddr(
+            (const char *) &clientaddr.sin_addr.s_addr,
+            sizeof(clientaddr.sin_addr.s_addr),
+            AF_INET)) == NULL)
+      error("gethostbyaddr() ERROR");
 
-	// read from a file descriptor(client_sock)
-	while((str_len = read(p->client_sock, msg, sizeof(msg)))!=0) {
-		pthread_mutex_lock(&mutex);
-		printf("#%d Received - ", p->client_id);
-		for (int i = 0; i < str_len; i++)
-			printf("%c", msg[i]);
+    pthread_mutex_lock(&mutex);
+    clientcount++;
+    clientlatest++;
+    printf("#%d - Connected from %s(%s:%d), TOTAL:%d\n",
+            clientlatest, hostp->h_name,
+            inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port), clientcount);
+    pthread_mutex_unlock(&mutex);
 
-		pthread_mutex_unlock(&mutex);
-	}
+    // memory allocation for `thread_param_t` struct
+    params = malloc(sizeof(thread_param_t));
+    params->client_id   = clientlatest;
+    params->client_sock = childfd;
 
-	pthread_mutex_lock(&mutex);
-	printf("#%d Disconnected, TOTAL:%d\n", p->client_id, --client_count);
-	pthread_mutex_unlock(&mutex);
-
-	close(p->client_sock);
-	return NULL;
-}
-
-void error_handling(char * msg) {
-	fputs(msg, stderr);
-	fputc('\n', stderr);
-	exit(1);
+    // 1 client, 1 thread
+    pthread_create(&thread_id, NULL, handle_client, (void *) params);
+    pthread_detach(thread_id);
+  }
 }
