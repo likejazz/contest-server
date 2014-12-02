@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in serveraddr;  // server's addr
   struct sockaddr_in clientaddr;  // client addr
   struct hostent *hostp;          // client host info
+  char *h_name;                   // client host name
   int optval = 1;                 // flag value for `setsockopt`
 
   pthread_t thread_id;            // thread id
@@ -105,15 +106,18 @@ int main(int argc, char *argv[]) {
     if ((hostp = gethostbyaddr(
             (const char *) &clientaddr.sin_addr.s_addr,
             sizeof(clientaddr.sin_addr.s_addr),
-            AF_INET)) == NULL)
-      error("gethostbyaddr() ERROR");
+            AF_INET)) == NULL) {
+      h_name = "";
+    } else {
+      h_name = hostp->h_name;
+    }
 
     pthread_mutex_lock(&mutex);
     clientcount++;
     clientlatest++;
     printf("#%d - Connected from %s(%s:%d), TOTAL:%d\n",
             clientlatest,
-            hostp->h_name, inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port),
+            h_name, inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port),
             clientcount);
     pthread_mutex_unlock(&mutex);
 
