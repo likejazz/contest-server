@@ -1,0 +1,23 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BACKLOG	contest.h	/^#define BACKLOG /;"	d
+BUF_SIZE	contest.h	/^#define BUF_SIZE /;"	d
+CC	Makefile	/^CC=gcc$/;"	m
+CFLAGS	Makefile	/^CFLAGS=-I.$/;"	m
+DEFAULT_PORT	contest.h	/^#define DEFAULT_PORT /;"	d
+DEPS	Makefile	/^DEPS = contest.h$/;"	m
+OBJ	Makefile	/^OBJ = contest.o client.o error.o$/;"	m
+client_id	contest.h	/^  int client_id;$/;"	m	struct:__anon1
+client_sock	contest.h	/^  int client_sock;$/;"	m	struct:__anon1
+clientcount	contest.h	/^int clientcount;              \/\/ total count of connected clients$/;"	v
+clientlatest	contest.h	/^int clientlatest;             \/\/ latest number of connected clients$/;"	v
+error	error.c	/^void error(char *msg) {$/;"	f
+handle_client	client.c	/^void *handle_client(void *params) {$/;"	f
+main	contest.c	/^int main(int argc, char *argv[]) {$/;"	f
+mutex	contest.h	/^pthread_mutex_t mutex;        \/\/ protecting shared data structures from concurrent modifications.$/;"	v
+params	contest.h	/^thread_param_t *params;       \/\/ params structure for pthread$/;"	v
+thread_param_t	contest.h	/^} thread_param_t;$/;"	t	typeref:struct:__anon1
