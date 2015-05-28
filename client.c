@@ -48,7 +48,8 @@ void *handle_client(void *params) {
     pthread_mutex_lock(&mutex);
     printf("#%d - Received %zd bytes: ", p->client_id, strlen);
     // print received message
-    for (int i = 0; i < strlen; i++)
+    int i;
+    for (i = 0; i < strlen; i++)
       printf("%c", msg[i]);
     pthread_mutex_unlock(&mutex);
 
