@@ -17,4 +17,4 @@ That's all.
 _The current version has been tested on Linux & Mac OS X_
 
 ## SAMPLE OUTPUT
-![](https://github.com/likejazz/contest-server/blob/master/pub/contest.png)
+<img src="https://raw.githubusercontent.com/likejazz/contest-server/master/assets/contest.png" width="600" />
